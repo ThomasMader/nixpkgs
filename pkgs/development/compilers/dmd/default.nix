@@ -1,4 +1,4 @@
-{ stdenv, callPackage, fetchurl, unzip, curl, which, tzdata, makeWrapper, gcc }:
+{ stdenv, callPackage, fetchurl, unzip, curl, which, tzdata, makeWrapper }:
 
 let
   bootstrap = callPackage ./dmd.2.067.1.nix { };
@@ -20,19 +20,16 @@ stdenv.mkDerivation rec {
       substituteInPlace src/phobos/std/datetime.d --replace /usr/share/zoneinfo/ ${tzdata}/share/zoneinfo/
       #Ugly hack so the dlopen call has a chance to succeed.
       substituteInPlace src/phobos/std/net/curl.d --replace libcurl.so ${curl}/lib/libcurl.so
-  '';
-
-  # Allow to use "clang++", commented in Makefile
-  postPatch = stdenv.lib.optionalString stdenv.isDarwin ''
-      #I think this is not needed at all because the Makefile sets the proper compiler per OS.
-      #I need to check that theory on an OSX machine.
-      substituteInPlace src/dmd/posix.mak --replace g++ clang++
+  '' + stdenv.lib.optionalString stdenv.isDarwin ''
+      substituteInPlace src/dmd/posix.mak \
+          --replace g++ clang++ \
+          --replace MACOSX_DEPLOYMENT_TARGET MACOSX_DEPLOYMENT_TARGET_
   '';
 
   # Buid and install are based on http://wiki.dlang.org/Building_DMD
   buildPhase = ''
       cd src/dmd
-      make -f posix.mak INSTALL_DIR=$out HOST_DC=${bootstrap}/bin/dmd BUILD=release
+      make -f posix.mak INSTALL_DIR=$out HOST_DMD=${bootstrap}/bin/dmd BUILD=release
       export DMD=$PWD/dmd
       cd ../druntime
       make -f posix.mak INSTALL_DIR=$out DMD=$DMD BUILD=release
@@ -41,7 +38,8 @@ stdenv.mkDerivation rec {
       cd ../..
   '';
 
-  doCheck = true;
+  # Test suite fails around too long path
+  doCheck = !stdenv.isDarwin;
 
   checkPhase = ''
     export DMD=$PWD/src/dmd/dmd
@@ -73,7 +71,9 @@ stdenv.mkDerivation rec {
       cp -r std $out/include/d2
       cp -r etc $out/include/d2
 
-      wrapProgram $out/bin/dmd --prefix PATH ":" "${gcc}/bin/"
+      wrapProgram $out/bin/dmd \
+          --prefix PATH ":" "${stdenv.cc}/bin/" \
+          --set CC "$""{CC:-$CC""}"
 
       cd $out/bin
       tee dmd.conf << EOF

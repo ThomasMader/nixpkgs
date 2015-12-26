@@ -1,4 +1,4 @@
-{ stdenv, fetchurl, unzip, makeWrapper, gcc }:
+{ stdenv, fetchurl, unzip, curl, makeWrapper }:
 
 stdenv.mkDerivation rec {
   version = "2.067.1";
@@ -9,12 +9,18 @@ stdenv.mkDerivation rec {
     sha256 = "0ny99vfllvvgcl79pwisxcdnb3732i827k9zg8c0j4s0n79k5z94";
   };
 
-  buildInputs = [ unzip makeWrapper ];
+  buildInputs = [ unzip curl makeWrapper ];
 
-  # Allow to use "clang++", commented in Makefile
   postPatch = stdenv.lib.optionalString stdenv.isDarwin ''
-      substituteInPlace src/dmd/posix.mak --replace g++ clang++
-  '';
+      # Allow to use "clang++", commented in Makefile
+      substituteInPlace src/dmd/posix.mak \
+          --replace g++ clang++ \
+          --replace MACOSX_DEPLOYMENT_TARGET MACOSX_DEPLOYMENT_TARGET_
+
+      # Was not able to compile on darwin due to "__inline_isnanl"
+      # being undefined.
+      substituteInPlace src/dmd/root/port.c --replace __inline_isnanl __inline_isnan
+ '';
 
   buildPhase = ''
       cd src/dmd
@@ -48,12 +54,14 @@ stdenv.mkDerivation rec {
       cp -r std $out/include/d2
       cp -r etc $out/include/d2
 
-      wrapProgram $out/bin/dmd --prefix PATH ":" "${gcc}/bin/"
+      wrapProgram $out/bin/dmd \
+          --prefix PATH ":" "${stdenv.cc}/bin/" \
+          --set CC "$""{CC:-$CC""}"
 
       cd $out/bin
       tee dmd.conf << EOF
       [Environment]
-      DFLAGS=-I$out/include/d2 -L-L$out/lib -L--no-warn-search-mismatch -L--export-dynamic
+      DFLAGS=-I$out/include/d2 -L-L$out/lib ${stdenv.lib.optionalString (!stdenv.cc.isClang) "-L--no-warn-search-mismatch -L--export-dynamic"}
       EOF
   '';
 
