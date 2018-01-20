@@ -1,9 +1,16 @@
-{ stdenv, fetchgit, fetchurl, cmake, llvm, curl, tzdata
+{ stdenv, fetchFromGitHub, cmake, llvm, curl, tzdata
 , python, libconfig, lit, gdb, unzip, darwin, bash
 , callPackage
 , bootstrapVersion ? false
 , version ? "1.7.0"
-, ldcSha256 ? "1g8qvmlzvsp030z2rw6lis4kclsd9mlmnbim5kas0k1yr9063m3w"
+, ldcRev ? "v${version}"
+, druntimeRev ? "ldc-v${version}"
+, phobosRev ? "ldc-v${version}"
+, dmdTestsuiteRev ? "ldc-v${version}"
+, ldcSha256 ? "1dsqj2pvdwqvfsd3p69p07kc7psry8kqrph7lbhml243k5n34mqr"
+, druntimeSha256 ? "1j34jvrp7xfsnmw3mgmp3sj65g5ps58n40pip0nadawvhavp1rdh"
+, phobosSha256 ? "0vksb93hh62z2pg8r1rqwkw9pnvwxkbjgq5mj08d6yx10h4wq2yy"
+, dmdTestsuiteSha256 ? "14k6p3jm092w0p4i243c5z33d8c9ykd8yr3jdvkkq7nk365yzxxg"
 }:
 
 let
@@ -14,7 +21,14 @@ let
     callPackage ./default.nix {
       bootstrapVersion = true;
       version = "0.17.5";
-      ldcSha256 = "0200r5y8hs5yv2cx24csgyh00dlg18877b9cfblixypr6nhl19bs";
+      ldcRev = "v0.17.5";
+      druntimeRev = "ldc-v0.17.5";
+      phobosRev = "ldc-v0.17.4";
+      dmdTestsuiteRev = "ldc-v0.17.5";
+      ldcSha256 = "1jd88hpaghghz4s4najvc2g97aas44rnvpbqmy7vz146q8sy09wm";
+      druntimeSha256 = "1cfkf71j1c4dcfyk310y6jkvxwgfzpn6vk3byvya3ibc53cnxrca";
+      phobosSha256 = "0i7gh99w4mi0hdv16261jcdiqyv1nkjdcwy9prw32s0lvplx8fdy";
+      dmdTestsuiteSha256 = "1p3khwqxxzdy1chz8dcy0khwys99kp8khsrsqaspvy47rswjngcn";
     }
   else
     "";
@@ -23,16 +37,51 @@ let
     name = "ldcBuild-${version}";
 
     enableParallelBuilding = true;
-
-    src = fetchurl {
-      url = "https://github.com/ldc-developers/ldc/releases/download/v${version}/ldc-${version}-src.tar.gz";
+ 
+    srcs = [
+    (fetchFromGitHub {
+      owner = "ldc-developers";
+      repo = "ldc";
+      rev = ldcRev;
       sha256 = ldcSha256;
-    };
+      name = "ldc-${ldcRev}-src";
+    })
+    (fetchFromGitHub {
+      owner = "ldc-developers";
+      repo = "druntime";
+      rev = druntimeRev;
+      sha256 = druntimeSha256;
+      name = "druntime-${druntimeRev}-src";
+    })
+    (fetchFromGitHub {
+      owner = "ldc-developers";
+      repo = "phobos";
+      rev = phobosRev;
+      sha256 = phobosSha256;
+      name = "phobos-${phobosRev}-src";
+    })
+    (fetchFromGitHub {
+      owner = "ldc-developers";
+      repo = "dmd-testsuite";
+      rev = dmdTestsuiteRev;
+      sha256 = dmdTestsuiteSha256;
+      name = "dmd-testsuite-${dmdTestsuiteRev}-src";
+    })
+    ];
 
     sourceRoot = ".";
 
     postUnpack = ''
-        cd ldc-${version}-src/
+        cd ldc-${ldcRev}-src/
+ 
+        rm -r runtime/druntime
+        mv ../druntime-${druntimeRev}-src runtime/druntime
+ 
+        rm -r runtime/phobos
+        mv ../phobos-${phobosRev}-src runtime/phobos
+ 
+        rm -r tests/d2/dmd-testsuite
+        mv ../dmd-testsuite-${dmdTestsuiteRev}-src tests/d2/dmd-testsuite
 
         patchShebangs .
 
@@ -181,7 +230,7 @@ let
     outputHashAlgo = "sha256";
     outputHash = builtins.hashString "sha256" inputString;
 
-    src = ldcBuild.src;
+    srcs = ldcBuild.srcs;
 
     sourceRoot = ".";
 
