@@ -40,10 +40,11 @@ let
  
     srcs = [
     (fetchFromGitHub {
-      owner = "ldc-developers";
+      #owner = "ldc-developers";
+      owner = if bootstrapVersion then "ldc-developers" else "Hardcode84";
       repo = "ldc";
-      rev = ldcRev;
-      sha256 = ldcSha256;
+      rev = if bootstrapVersion then ldcRev else "jit_osx_link_fix";
+      sha256 = if bootstrapVersion then ldcSha256 else "1yqxmwrirnfk5y2spkqgfv6njgi4jbxj5frkg3zxviahsw5b45pc";
       name = "ldc-${ldcRev}-src";
     })
     (fetchFromGitHub {
@@ -109,7 +110,7 @@ let
 
     + stdenv.lib.optionalString (!bootstrapVersion) ''
 	    # http://forum.dlang.org/thread/xtbbqthxutdoyhnxjhxl@forum.dlang.org
-	    rm -r tests/dynamiccompile
+	    #rm -r tests/dynamiccompile
     '';
 
     ROOT_HOME_DIR = "$(echo ~root)";
