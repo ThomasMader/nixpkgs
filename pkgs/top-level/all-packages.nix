@@ -5909,6 +5909,17 @@ with pkgs;
     isl = isl_0_17;
   }));
 
+  gdc = callPackage ../development/compilers/gdc { 
+    inherit noSysDirs;
+
+    isl = if !stdenv.isDarwin then isl_0_14 else null;
+  };
+  #gdc = lowPrio (wrapCC (callPackage ../development/compilers/gdc {
+  #  inherit noSysDirs;
+
+  #  isl = if !stdenv.isDarwin then isl_0_14 else null;
+  #}));
+
   gfortran = gfortran6;
 
   gfortran48 = wrapCC (gcc48.cc.override {
