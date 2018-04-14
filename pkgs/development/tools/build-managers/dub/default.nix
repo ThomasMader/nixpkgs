@@ -4,7 +4,7 @@ let
 
   dubBuild = stdenv.mkDerivation rec {
     name = "dubBuild-${version}";
-    version = "1.8.0";
+    version = "1.8.1-beta.1";
 
     enableParallelBuilding = true;
 
@@ -12,7 +12,7 @@ let
       owner = "dlang";
       repo = "dub";
       rev = "v${version}";
-      sha256 = "0788d375sc6xdak9x6xclkkz243lb7di68yxfvl4v0n178mi22bk";
+      sha256 = "0prsrznjxhcxswcrc8a92hirg6kj9fyjfb43hggl2xn38mmqvqlj";
     };
 
     postUnpack = ''
@@ -75,6 +75,7 @@ let
       # file under ../etc relative to the dub location.
       cp ${dubBuild}/bin/dub bin/
       export DUB=$NIX_BUILD_TOP/source/bin/dub
+      export PATH=$PATH:$NIX_BUILD_TOP/source/bin/
       export DC=${dmd.out}/bin/dmd
       export HOME=$TMP
       ./test/run-unittest.sh
