@@ -1,5 +1,6 @@
 { stdenv, targetPackages, fetchurl, noSysDirs
 , langC ? true, langCC ? true, langFortran ? false
+, langD ? false
 , langObjC ? stdenv.targetPlatform.isDarwin
 , langObjCpp ? stdenv.targetPlatform.isDarwin
 , langGo ? false
@@ -30,6 +31,9 @@ assert libelf != null -> zlib != null;
 
 # Make sure we get GNU sed.
 assert stdenv.hostPlatform.isDarwin -> gnused != null;
+
+# The D frontend is written in c++ for now
+assert langD -> langCC;
 
 # The go frontend is written in c++
 assert langGo -> langCC;
@@ -250,6 +254,7 @@ stdenv.mkDerivation ({
         concatStrings (intersperse ","
           (  optional langC        "c"
           ++ optional langCC       "c++"
+          ++ optional langD       "d"
           ++ optional langFortran  "fortran"
           ++ optional langGo       "go"
           ++ optional langObjC     "objc"
@@ -341,7 +346,7 @@ stdenv.mkDerivation ({
     ]));
 
   passthru = {
-    inherit langC langCC langObjC langObjCpp langFortran langGo version;
+    inherit langC langCC langD langObjC langObjCpp langFortran langGo version;
     isGNU = true;
   };
 
@@ -358,8 +363,8 @@ stdenv.mkDerivation ({
 
     longDescription = ''
       The GNU Compiler Collection includes compiler front ends for C, C++,
-      Objective-C, Fortran, OpenMP for C/C++/Fortran, and Ada, as well as
-      libraries for these languages (libstdc++, libgomp,...).
+      Objective-C, Fortran, OpenMP for C/C++/Fortran, Ada, Go and D
+      as well as libraries for these languages (libstdc++, libgomp,...).
 
       GCC development is a part of the GNU Project, aiming to improve the
       compiler used in the GNU system including the GNU/Linux variant.
